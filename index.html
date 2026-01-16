@@ -274,12 +274,24 @@
                 statusText.textContent = 'Connecting to server...';
                 ws = new WebSocket(`wss://jam2.swpage89.workers.dev/?room=${roomName}`);
                 
-                ws.onopen = () => {
+                ws.onopen = async () => {
+                    statusText.textContent = 'Getting your IP address...';
+                    
+                    // Get public IP via STUN or API
+                    let publicIP = 'unknown';
+                    try {
+                        const ipResponse = await fetch('https://api.ipify.org?format=json');
+                        const ipData = await ipResponse.json();
+                        publicIP = ipData.ip;
+                    } catch (err) {
+                        console.log('Could not get public IP:', err);
+                    }
+                    
                     statusText.textContent = 'Connected! Waiting for others...';
                     ws.send(JSON.stringify({
                         type: 'join',
                         username: username,
-                        public_ip: 'web-client',
+                        public_ip: publicIP,
                         public_port: 0
                     }));
                     
