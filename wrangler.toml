@@ -1,0 +1,11 @@
+name = "jam2"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+[[durable_objects.bindings]]
+name = "JAM_ROOM2"
+class_name = "JamRoom"
+
+[[migrations]]
+tag = "v2"
+new_classes = ["JamRoom"]
