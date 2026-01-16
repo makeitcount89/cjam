@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProJam - Live Music Collaboration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 90%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .status.active {
+            display: block;
+        }
+        
+        .peer-list {
+            margin-top: 15px;
+        }
+        
+        .peer {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .peer-indicator {
+            width: 12px;
+            height: 12px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .level-meter {
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-top: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .level-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #facc15, #ef4444);
+            width: 0%;
+            transition: width 0.1s;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎸 ProJam</h1>
+        <p class="subtitle">Real-time music collaboration</p>
+        
+        <div id="joinForm">
+            <div class="form-group">
+                <label for="roomName">Room Name</label>
+                <input type="text" id="roomName" placeholder="my-jam-session" value="jam-room">
+            </div>
+            
+            <div class="form-group">
+                <label for="username">Your Name</label>
+                <input type="text" id="username" placeholder="Guitarist123">
+            </div>
+            
+            <button id="joinBtn">Join Jam Session 🎵</button>
+        </div>
+        
+        <div id="status" class="status">
+            <h3>Connected to: <span id="roomDisplay"></span></h3>
+            <p>Status: <span id="statusText">Connecting...</span></p>
+            
+            <div class="level-meter">
+                <div class="level-bar" id="levelBar"></div>
+            </div>
+            <p style="font-size: 12px; margin-top: 5px; opacity: 0.8;">Input Level</p>
+            
+            <div class="peer-list">
+                <h4 style="margin-bottom: 10px;">Musicians in room:</h4>
+                <div id="peerList"></div>
+            </div>
+            
+            <button id="leaveBtn" style="margin-top: 20px; background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);">Leave Session</button>
+        </div>
+        
+        <div class="instructions">
+            <h3>📝 How to use:</h3>
+            <ol>
+                <li>Make sure your microphone is enabled</li>
+                <li>Enter a room name (same name = same room)</li>
+                <li>Click "Join Jam Session"</li>
+                <li>Share the room name with your bandmates</li>
+                <li>Start playing! Audio is transmitted in real-time</li>
+            </ol>
+            <p style="margin-top: 15px; opacity: 0.8;">
+                <strong>Note:</strong> This web version uses WebRTC for audio. 
+                For best results with multiple musicians, use the native desktop app.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let audioContext = null;
+        let localStream = null;
+        let peerConnections = {};
+        
+        const joinBtn = document.getElementById('joinBtn');
+        const leaveBtn = document.getElementById('leaveBtn');
+        const joinForm = document.getElementById('joinForm');
+        const status = document.getElementById('status');
+        const statusText = document.getElementById('statusText');
+        const roomDisplay = document.getElementById('roomDisplay');
+        const peerList = document.getElementById('peerList');
+        const levelBar = document.getElementById('levelBar');
+        
+        joinBtn.addEventListener('click', joinSession);
+        leaveBtn.addEventListener('click', leaveSession);
+        
+        async function joinSession() {
+            const roomName = document.getElementById('roomName').value.trim();
+            const username = document.getElementById('username').value.trim();
+            
+            if (!roomName || !username) {
+                alert('Please enter both room name and your name');
+                return;
+            }
+            
+            try {
+                // Get microphone access
+                statusText.textContent = 'Requesting microphone access...';
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    } 
+                });
+                
+                // Set up audio level monitoring
+                audioContext = new AudioContext();
+                const analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(localStream);
+                source.connect(analyser);
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                
+                function updateLevel() {
+                    analyser.getByteFrequencyData(dataArray);
+                    const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+                    levelBar.style.width = (average / 255 * 100) + '%';
+                    if (audioContext.state === 'running') {
+                        requestAnimationFrame(updateLevel);
+                    }
+                }
+                updateLevel();
+                
+                // Connect to signaling server
+                statusText.textContent = 'Connecting to server...';
+                ws = new WebSocket(`wss://jam2.swpage89.workers.dev/?room=${roomName}`);
+                
+                ws.onopen = () => {
+                    statusText.textContent = 'Connected! Waiting for others...';
+                    ws.send(JSON.stringify({
+                        type: 'join',
+                        username: username,
+                        public_ip: 'web-client',
+                        public_port: 0
+                    }));
+                    
+                    joinForm.style.display = 'none';
+                    status.classList.add('active');
+                    roomDisplay.textContent = roomName;
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    handleSignaling(data, username);
+                };
+                
+                ws.onerror = () => {
+                    statusText.textContent = 'Connection error!';
+                };
+                
+                ws.onclose = () => {
+                    statusText.textContent = 'Disconnected';
+                    leaveSession();
+                };
+                
+            } catch (err) {
+                console.error('Error:', err);
+                alert('Could not access microphone. Please check permissions.');
+                statusText.textContent = 'Error';
+            }
+        }
+        
+        function handleSignaling(data, username) {
+            console.log('Received:', data);
+            
+            switch(data.type) {
+                case 'joined':
+                    statusText.textContent = `Connected as ${username}`;
+                    break;
+                    
+                case 'user-joined':
+                    addPeer(data.peerId, data.username);
+                    statusText.textContent = `${data.username} joined!`;
+                    break;
+                    
+                case 'existing-users':
+                    data.users.forEach(user => {
+                        addPeer(user.peerId, user.username);
+                    });
+                    if (data.users.length > 0) {
+                        statusText.textContent = `Playing with ${data.users.length} other${data.users.length > 1 ? 's' : ''}`;
+                    }
+                    break;
+                    
+                case 'user-left':
+                    removePeer(data.peerId);
+                    statusText.textContent = `${data.username} left`;
+                    break;
+            }
+        }
+        
+        function addPeer(peerId, username) {
+            const peerDiv = document.createElement('div');
+            peerDiv.className = 'peer';
+            peerDiv.id = 'peer-' + peerId;
+            peerDiv.innerHTML = `
+                <div class="peer-indicator"></div>
+                <span>${username}</span>
+            `;
+            peerList.appendChild(peerDiv);
+        }
+        
+        function removePeer(peerId) {
+            const peerDiv = document.getElementById('peer-' + peerId);
+            if (peerDiv) peerDiv.remove();
+        }
+        
+        function leaveSession() {
+            if (ws) ws.close();
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+            
+            joinForm.style.display = 'block';
+            status.classList.remove('active');
+            peerList.innerHTML = '';
+            ws = null;
+            localStream = null;
+            audioContext = null;
+        }
+    </script>
+</body>
+</html>
