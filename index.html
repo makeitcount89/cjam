@@ -207,8 +207,8 @@
                 <li>Start playing! Audio is transmitted in real-time</li>
             </ol>
             <p style="margin-top: 15px; opacity: 0.8;">
-                <strong>Note:</strong> This web version uses WebRTC for audio. 
-                For best results with multiple musicians, use the native desktop app.
+                <strong>Note:</strong> This web version works with both web and desktop clients.
+                For lowest latency, use the native desktop app.
             </p>
         </div>
     </div>
@@ -217,7 +217,8 @@
         let ws = null;
         let audioContext = null;
         let localStream = null;
-        let peerConnections = {};
+        let audioProcessor = null;
+        let myPeerId = null;
         
         const joinBtn = document.getElementById('joinBtn');
         const leaveBtn = document.getElementById('leaveBtn');
@@ -247,12 +248,15 @@
                     audio: {
                         echoCancellation: true,
                         noiseSuppression: true,
-                        autoGainControl: true
+                        autoGainControl: true,
+                        sampleRate: 48000
                     } 
                 });
                 
+                // Set up audio context
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+                
                 // Set up audio level monitoring
-                audioContext = new AudioContext();
                 const analyser = audioContext.createAnalyser();
                 const source = audioContext.createMediaStreamSource(localStream);
                 source.connect(analyser);
@@ -264,7 +268,7 @@
                     analyser.getByteFrequencyData(dataArray);
                     const average = dataArray.reduce((a, b) => a + b) / bufferLength;
                     levelBar.style.width = (average / 255 * 100) + '%';
-                    if (audioContext.state === 'running') {
+                    if (audioContext && audioContext.state === 'running') {
                         requestAnimationFrame(updateLevel);
                     }
                 }
@@ -274,24 +278,12 @@
                 statusText.textContent = 'Connecting to server...';
                 ws = new WebSocket(`wss://jam2.swpage89.workers.dev/?room=${roomName}`);
                 
-                ws.onopen = async () => {
-                    statusText.textContent = 'Getting your IP address...';
-                    
-                    // Get public IP via STUN or API
-                    let publicIP = 'unknown';
-                    try {
-                        const ipResponse = await fetch('https://api.ipify.org?format=json');
-                        const ipData = await ipResponse.json();
-                        publicIP = ipData.ip;
-                    } catch (err) {
-                        console.log('Could not get public IP:', err);
-                    }
-                    
-                    statusText.textContent = 'Connected! Waiting for others...';
+                ws.onopen = () => {
+                    statusText.textContent = 'Connected! Joining room...';
                     ws.send(JSON.stringify({
                         type: 'join',
                         username: username,
-                        public_ip: publicIP,
+                        public_ip: 'web-client',
                         public_port: 0
                     }));
                     
@@ -305,13 +297,13 @@
                     handleSignaling(data, username);
                 };
                 
-                ws.onerror = () => {
+                ws.onerror = (err) => {
+                    console.error('WebSocket error:', err);
                     statusText.textContent = 'Connection error!';
                 };
                 
                 ws.onclose = () => {
                     statusText.textContent = 'Disconnected';
-                    leaveSession();
                 };
                 
             } catch (err) {
@@ -321,12 +313,14 @@
             }
         }
         
-        function handleSignaling(data, username) {
+        async function handleSignaling(data, username) {
             console.log('Received:', data);
             
             switch(data.type) {
                 case 'joined':
+                    myPeerId = data.peerId;
                     statusText.textContent = `Connected as ${username}`;
+                    await setupAudioProcessing();
                     break;
                     
                 case 'user-joined':
@@ -347,10 +341,110 @@
                     removePeer(data.peerId);
                     statusText.textContent = `${data.username} left`;
                     break;
+
+                case 'desktop-audio':
+                    // Receive audio from desktop clients
+                    if (data.audio && Array.isArray(data.audio)) {
+                        await playAudioData(new Uint8Array(data.audio));
+                    }
+                    break;
+
+                case 'webrtc-audio':
+                    // Receive audio from other web clients
+                    if (data.peerId !== myPeerId && data.audio && Array.isArray(data.audio)) {
+                        await playAudioData(new Uint8Array(data.audio));
+                    }
+                    break;
+
+                case 'ping':
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'pong' }));
+                    }
+                    break;
+            }
+        }
+        
+        async function setupAudioProcessing() {
+            try {
+                const source = audioContext.createMediaStreamSource(localStream);
+                
+                // Use ScriptProcessor for audio capture (legacy but widely supported)
+                const bufferSize = 4096;
+                audioProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+                
+                let frameBuffer = [];
+                const FRAME_SIZE = 960; // 20ms at 48kHz
+                
+                audioProcessor.onaudioprocess = (e) => {
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    
+                    // Convert float32 [-1, 1] to int16 [-32768, 32767]
+                    for (let i = 0; i < inputData.length; i++) {
+                        const s = Math.max(-1, Math.min(1, inputData[i]));
+                        const sample = s < 0 ? s * 32768 : s * 32767;
+                        frameBuffer.push(Math.round(sample));
+                        
+                        // Send when we have a complete frame
+                        if (frameBuffer.length >= FRAME_SIZE) {
+                            const frame = frameBuffer.slice(0, FRAME_SIZE);
+                            frameBuffer = frameBuffer.slice(FRAME_SIZE);
+                            
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify({
+                                    type: 'webrtc-audio',
+                                    audio: frame
+                                }));
+                            }
+                        }
+                    }
+                };
+                
+                source.connect(audioProcessor);
+                audioProcessor.connect(audioContext.destination);
+                
+                console.log('Audio processing started');
+                
+            } catch (err) {
+                console.error('Audio processing error:', err);
+                statusText.textContent = 'Error setting up audio';
+            }
+        }
+        
+        async function playAudioData(int16Data) {
+            try {
+                if (!audioContext) return;
+                
+                // Convert int16 to float32
+                const float32 = new Float32Array(int16Data.length);
+                for (let i = 0; i < int16Data.length; i++) {
+                    // Treat as signed 16-bit integer
+                    let sample = int16Data[i];
+                    if (sample > 32767) sample -= 65536; // Convert unsigned to signed
+                    float32[i] = sample / (sample < 0 ? 32768 : 32767);
+                }
+                
+                // Create audio buffer
+                const audioBuffer = audioContext.createBuffer(1, float32.length, audioContext.sampleRate);
+                audioBuffer.getChannelData(0).set(float32);
+                
+                // Play the buffer
+                const bufferSource = audioContext.createBufferSource();
+                bufferSource.buffer = audioBuffer;
+                bufferSource.connect(audioContext.destination);
+                bufferSource.start();
+                
+            } catch (err) {
+                console.error('Playback error:', err);
             }
         }
         
         function addPeer(peerId, username) {
+            // Don't add ourselves
+            if (peerId === myPeerId) return;
+            
+            const existingPeer = document.getElementById('peer-' + peerId);
+            if (existingPeer) return; // Already added
+            
             const peerDiv = document.createElement('div');
             peerDiv.className = 'peer';
             peerDiv.id = 'peer-' + peerId;
@@ -367,20 +461,27 @@
         }
         
         function leaveSession() {
-            if (ws) ws.close();
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            if (audioProcessor) {
+                audioProcessor.disconnect();
+                audioProcessor = null;
             }
             if (audioContext) {
                 audioContext.close();
+                audioContext = null;
             }
             
             joinForm.style.display = 'block';
             status.classList.remove('active');
             peerList.innerHTML = '';
-            ws = null;
-            localStream = null;
-            audioContext = null;
+            myPeerId = null;
         }
     </script>
 </body>
