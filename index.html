@@ -554,18 +554,29 @@
                             
                             // Self-monitor if enabled
                             if (monitorEnabled && monitorGain > 0) {
-                                const monitorFrame = frame.map(s => Math.round(s * monitorGain));
-                                queueAudioFrame(new Uint8Array(monitorFrame.map(s => {
-                                    const val = s & 0xFFFF;
-                                    return val > 32767 ? val - 65536 : val;
-                                })));
+                                // Convert frame to properly formatted array
+                                const monitorData = new Uint8Array(frame.length * 2);
+                                for (let j = 0; j < frame.length; j++) {
+                                    const sample = Math.round(frame[j] * monitorGain);
+                                    const clamped = Math.max(-32768, Math.min(32767, sample));
+                                    monitorData[j * 2] = clamped & 0xFF;
+                                    monitorData[j * 2 + 1] = (clamped >> 8) & 0xFF;
+                                }
+                                queueAudioFrame(monitorData);
                             }
                             
-                            // Send to network
+                            // Send to network - convert to byte array for JSON
+                            const audioBytes = new Array(frame.length * 2);
+                            for (let j = 0; j < frame.length; j++) {
+                                const sample = frame[j];
+                                audioBytes[j * 2] = sample & 0xFF;
+                                audioBytes[j * 2 + 1] = (sample >> 8) & 0xFF;
+                            }
+                            
                             if (ws && ws.readyState === WebSocket.OPEN) {
                                 ws.send(JSON.stringify({
                                     type: 'webrtc-audio',
-                                    audio: frame,
+                                    audio: audioBytes,
                                     timestamp: Date.now() * 1000
                                 }));
                             }
@@ -582,8 +593,8 @@
             }
         }
         
-        function queueAudioFrame(int16Data) {
-            playbackBuffer.push(int16Data);
+        function queueAudioFrame(byteArray) {
+            playbackBuffer.push(byteArray);
             
             // Limit buffer size
             if (maxBufferFrames > 0) {
@@ -596,7 +607,6 @@
         }
         
         function startContinuousPlayback() {
-            const FRAME_SIZE = 960;
             const INTERVAL_MS = 20;
             
             setInterval(() => {
@@ -606,11 +616,18 @@
                 updateBufferStats();
                 
                 try {
-                    const float32 = new Float32Array(frame.length);
-                    for (let i = 0; i < frame.length; i++) {
-                        let sample = frame[i];
-                        if (sample > 32767) sample -= 65536;
-                        float32[i] = sample / (sample < 0 ? 32768 : 32767);
+                    // Convert byte array to int16 samples
+                    const int16Array = new Int16Array(frame.length / 2);
+                    for (let i = 0; i < int16Array.length; i++) {
+                        const byte1 = frame[i * 2];
+                        const byte2 = frame[i * 2 + 1];
+                        int16Array[i] = (byte2 << 8) | byte1;
+                    }
+                    
+                    // Convert int16 to float32
+                    const float32 = new Float32Array(int16Array.length);
+                    for (let i = 0; i < int16Array.length; i++) {
+                        float32[i] = int16Array[i] / (int16Array[i] < 0 ? 32768 : 32767);
                     }
                     
                     const audioBuffer = audioContext.createBuffer(1, float32.length, audioContext.sampleRate);
