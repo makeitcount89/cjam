@@ -278,8 +278,8 @@
                 <div class="control-row">
                     <div class="control-label">Buffer Size:</div>
                     <div class="slider-container">
-                        <input type="range" id="bufferSlider" min="0" max="10" value="2" step="1">
-                        <div class="slider-value"><span id="bufferValue">2</span> frames</div>
+                        <input type="range" id="bufferSlider" min="0" max="50" value="10" step="1">
+                        <div class="slider-value"><span id="bufferValue">10</span> frames</div>
                     </div>
                 </div>
                 
@@ -337,7 +337,7 @@
         let audioProcessor = null;
         let myPeerId = null;
         let playbackBuffer = [];
-        let maxBufferFrames = 2;
+        let maxBufferFrames = 10;
         let monitorEnabled = false;
         let monitorGain = 0;
         let lastPacketTime = 0;
