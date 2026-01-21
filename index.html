@@ -538,7 +538,7 @@
             }
         }
         
-        <script>
+        
 async function setupAudioProcessing() {
     const source = audioContext.createMediaStreamSource(localStream);
 
@@ -578,20 +578,16 @@ async function setupAudioProcessing() {
     source.connect(processor);
     processor.connect(audioContext.destination);
 }
-</script>
 
-        function queueAudioFrame(byteArray) {
-            playbackBuffer.push(byteArray);
-            
-            // Limit buffer size
-            if (maxBufferFrames > 0) {
-                while (playbackBuffer.length > maxBufferFrames) {
-                    playbackBuffer.shift();
-                }
-            }
-            
-            updateBufferStats();
-        }
+
+        function queueAudioFrame(arrayBuffer) {
+    playbackBuffer.push(arrayBuffer);
+
+    while (playbackBuffer.length > maxBufferFrames) {
+        playbackBuffer.shift();
+    }
+}
+
         
         function startContinuousPlayback() {
     let playTime = audioContext.currentTime;
