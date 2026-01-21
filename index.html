@@ -1,319 +1,694 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ProJam - Live Music Collaboration</title>
-
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    padding: 20px;
-}
-
-.container {
-    max-width: 700px;
-    width: 100%;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 40px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-h1 { font-size: 2.5em; margin-bottom: 10px; text-align: center; }
-.subtitle { text-align: center; opacity: 0.9; margin-bottom: 40px; }
-
-.form-group { margin-bottom: 25px; }
-label { display:block; margin-bottom:8px; font-weight:500; }
-
-input {
-    width:100%;
-    padding:15px;
-    border:none;
-    border-radius:10px;
-    font-size:16px;
-    background: rgba(255,255,255,0.9);
-}
-
-button {
-    width:100%;
-    padding:15px;
-    border:none;
-    border-radius:10px;
-    font-size:18px;
-    font-weight:bold;
-    cursor:pointer;
-    background: linear-gradient(135deg,#f093fb,#f5576c);
-    color:white;
-}
-
-.status {
-    margin-top:30px;
-    padding:20px;
-    background: rgba(0,0,0,0.2);
-    border-radius:10px;
-    display:none;
-}
-
-.status.active { display:block; }
-
-.controls-panel {
-    background: rgba(255,255,255,0.1);
-    border-radius:10px;
-    padding:20px;
-    margin:20px 0;
-}
-
-.control-row {
-    display:flex;
-    align-items:center;
-    gap:15px;
-    margin-bottom:15px;
-}
-
-input[type="range"] { flex:1; }
-
-.peer {
-    padding:10px;
-    background: rgba(255,255,255,0.1);
-    border-radius:8px;
-    margin-bottom:8px;
-    display:flex;
-    gap:10px;
-}
-
-.peer-indicator {
-    width:12px;
-    height:12px;
-    background:#4ade80;
-    border-radius:50%;
-}
-
-.level-meter {
-    width:100%;
-    height:40px;
-    background: rgba(0,0,0,0.3);
-    border-radius:8px;
-    margin-top:20px;
-    overflow:hidden;
-}
-
-.level-bar {
-    height:100%;
-    background: linear-gradient(90deg,#4ade80,#facc15,#ef4444);
-    width:0%;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProJam - Live Music Collaboration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 700px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            opacity: 0.9;
+            margin-bottom: 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .status.active {
+            display: block;
+        }
+        
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .controls-panel h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .control-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 15px;
+        }
+        
+        .control-label {
+            min-width: 140px;
+            font-size: 14px;
+        }
+        
+        .slider-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .slider-value {
+            min-width: 60px;
+            text-align: right;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .peer-list {
+            margin-top: 15px;
+        }
+        
+        .peer {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .peer-indicator {
+            width: 12px;
+            height: 12px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .level-meter {
+            width: 100%;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-top: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .level-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #facc15, #ef4444);
+            width: 0%;
+            transition: width 0.1s;
+        }
+        
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+        }
+        
+        .instructions ol {
+            margin-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+    </style>
 </head>
-
 <body>
-<div class="container">
-<h1>🎸 ProJam</h1>
-<p class="subtitle">Real-time music collaboration</p>
-
-<div id="joinForm">
-    <div class="form-group">
-        <label>Room Name</label>
-        <input id="roomName" value="jam-room">
-    </div>
-    <div class="form-group">
-        <label>Your Name</label>
-        <input id="username">
-    </div>
-    <button id="joinBtn">Join Jam Session 🎵</button>
-</div>
-
-<div id="status" class="status">
-    <h3>Status: <span id="statusText">Connecting…</span></h3>
-
-    <div class="controls-panel">
-        <div class="control-row">
-            <span>Self Monitor</span>
-            <input type="checkbox" id="monitorCheck">
-            <input type="range" id="monitorSlider" min="0" max="100" value="0">
+    <div class="container">
+        <h1>🎸 ProJam</h1>
+        <p class="subtitle">Real-time music collaboration</p>
+        
+        <div id="joinForm">
+            <div class="form-group">
+                <label for="roomName">Room Name</label>
+                <input type="text" id="roomName" placeholder="my-jam-session" value="jam-room">
+            </div>
+            
+            <div class="form-group">
+                <label for="username">Your Name</label>
+                <input type="text" id="username" placeholder="Guitarist123">
+            </div>
+            
+            <button id="joinBtn">Join Jam Session 🎵</button>
+        </div>
+        
+        <div id="status" class="status">
+            <h3>Connected to: <span id="roomDisplay"></span></h3>
+            <p>Status: <span id="statusText">Connecting...</span></p>
+            
+            <div class="controls-panel">
+                <h3>⚡ Live Controls</h3>
+                
+                <div class="control-row">
+                    <div class="control-label">Buffer Size:</div>
+                    <div class="slider-container">
+                        <input type="range" id="bufferSlider" min="0" max="50" value="10" step="1">
+                        <div class="slider-value"><span id="bufferValue">10</span> frames</div>
+                    </div>
+                </div>
+                
+                <div class="control-row">
+                    <div class="control-label">Monitor Volume:</div>
+                    <div class="slider-container">
+                        <input type="range" id="monitorSlider" min="0" max="100" value="0" step="1">
+                        <div class="slider-value"><span id="monitorValue">0</span>%</div>
+                    </div>
+                </div>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="monitorCheck">
+                    <label for="monitorCheck" style="margin: 0; cursor: pointer;">🎧 Enable Self-Monitor</label>
+                </div>
+            </div>
+            
+            <div class="level-meter">
+                <div class="level-bar" id="levelBar"></div>
+            </div>
+            <div class="stats-row">
+                <span>Input Level</span>
+                <span>Buffer: <span id="bufferStats">0ms</span> | Latency: <span id="latencyStats">--</span></span>
+            </div>
+            
+            <div class="peer-list">
+                <h4 style="margin-bottom: 10px;">Musicians in room:</h4>
+                <div id="peerList"></div>
+            </div>
+            
+            <button id="leaveBtn" style="margin-top: 20px; background: linear-gradient(135deg, #f97316 0%, #dc2626 100%);">Leave Session</button>
+        </div>
+        
+        <div class="instructions">
+            <h3>📝 How to use:</h3>
+            <ol>
+                <li>Make sure your microphone is enabled</li>
+                <li>Enter a room name (same name = same room)</li>
+                <li>Click "Join Jam Session"</li>
+                <li>Adjust buffer size for latency vs stability trade-off</li>
+                <li>Enable monitor to hear yourself with adjustable volume</li>
+                <li>Share the room name with your bandmates</li>
+            </ol>
+            <p style="margin-top: 15px; opacity: 0.8;">
+                <strong>Note:</strong> This web version works with both web and desktop clients.
+                For lowest latency, use the native desktop app.
+            </p>
         </div>
     </div>
 
-    <div class="level-meter"><div id="levelBar" class="level-bar"></div></div>
-    <p>Buffer: <span id="bufferStats">0ms</span></p>
-
-    <h4>Peers</h4>
-    <div id="peerList"></div>
-
-    <button id="leaveBtn" style="margin-top:20px;background:#dc2626;">Leave</button>
-</div>
-</div>
-
-<script>
-/* ================= STATE ================= */
-let ws = null;
-let audioContext = null;
-let localStream = null;
-let audioProcessor = null;
-
-let playbackBuffer = [];
-let maxBufferFrames = 10;
-
-let monitorEnabled = false;
-let monitorGain = 0;
-let myPeerId = null;
-
-/* ================= UI ================= */
-const joinBtn = document.getElementById('joinBtn');
-const leaveBtn = document.getElementById('leaveBtn');
-const joinForm = document.getElementById('joinForm');
-const status = document.getElementById('status');
-const statusText = document.getElementById('statusText');
-const peerList = document.getElementById('peerList');
-const levelBar = document.getElementById('levelBar');
-const bufferStats = document.getElementById('bufferStats');
-const monitorCheck = document.getElementById('monitorCheck');
-const monitorSlider = document.getElementById('monitorSlider');
-
-monitorCheck.onchange = e => monitorEnabled = e.target.checked;
-monitorSlider.oninput = e => monitorGain = e.target.value / 100;
-
-/* ================= JOIN ================= */
-joinBtn.onclick = async () => {
-    const room = roomName.value.trim();
-    const name = username.value.trim();
-    if (!room || !name) return alert("Missing fields");
-
-    localStream = await navigator.mediaDevices.getUserMedia({ audio:true });
-    audioContext = new AudioContext({ sampleRate:48000 });
-
-    startMeter();
-    startPlayback();
-
-    ws = new WebSocket(`wss://jam2.swpage89.workers.dev/?room=${room}`);
-
-    ws.onopen = () => {
-        ws.send(JSON.stringify({
-            type:'join',
-            username:name,
-            public_ip:'web-client',
-            public_port:0
-        }));
-        joinForm.style.display='none';
-        status.classList.add('active');
-        statusText.textContent='Connected';
-    };
-
-    ws.onmessage = e => {
-        if (e.data instanceof ArrayBuffer) {
-            queueFrame(e.data);
-            return;
+    <script>
+        let ws = null;
+        let audioContext = null;
+        let localStream = null;
+        let audioProcessor = null;
+        let myPeerId = null;
+        let playbackBuffer = [];
+        let maxBufferFrames = 10;
+        let monitorEnabled = false;
+        let monitorGain = 0;
+        let lastPacketTime = 0;
+        
+        const joinBtn = document.getElementById('joinBtn');
+        const leaveBtn = document.getElementById('leaveBtn');
+        const joinForm = document.getElementById('joinForm');
+        const status = document.getElementById('status');
+        const statusText = document.getElementById('statusText');
+        const roomDisplay = document.getElementById('roomDisplay');
+        const peerList = document.getElementById('peerList');
+        const levelBar = document.getElementById('levelBar');
+        const bufferSlider = document.getElementById('bufferSlider');
+        const bufferValue = document.getElementById('bufferValue');
+        const monitorSlider = document.getElementById('monitorSlider');
+        const monitorValue = document.getElementById('monitorValue');
+        const monitorCheck = document.getElementById('monitorCheck');
+        const bufferStats = document.getElementById('bufferStats');
+        const latencyStats = document.getElementById('latencyStats');
+        
+        // Buffer slider
+        bufferSlider.addEventListener('input', (e) => {
+            maxBufferFrames = parseInt(e.target.value);
+            bufferValue.textContent = maxBufferFrames;
+            updateBufferStats();
+        });
+        
+        // Monitor slider
+        monitorSlider.addEventListener('input', (e) => {
+            monitorGain = parseInt(e.target.value) / 100;
+            monitorValue.textContent = e.target.value;
+        });
+        
+        // Monitor checkbox
+        monitorCheck.addEventListener('change', (e) => {
+            monitorEnabled = e.target.checked;
+            if (!monitorEnabled) {
+                monitorSlider.value = 0;
+                monitorValue.textContent = '0';
+                monitorGain = 0;
+            } else if (monitorGain === 0) {
+                monitorSlider.value = 50;
+                monitorValue.textContent = '50';
+                monitorGain = 0.5;
+            }
+        });
+        
+        function updateBufferStats() {
+            const bufferMs = (playbackBuffer.length * 20).toFixed(1);
+            bufferStats.textContent = bufferMs + 'ms';
         }
-        handleSignal(JSON.parse(e.data));
-    };
-};
-
-/* ================= SIGNALING ================= */
-function handleSignal(d){
-    if (d.type==='joined'){ myPeerId=d.peerId; setupCapture(); }
-    if (d.type==='user-joined') addPeer(d.peerId,d.username);
-    if (d.type==='user-left') removePeer(d.peerId);
-}
-
-/* ================= AUDIO CAPTURE ================= */
-function setupCapture(){
-    const source = audioContext.createMediaStreamSource(localStream);
-    audioProcessor = audioContext.createScriptProcessor(1024,1,1);
-
-    const frame = new Int16Array(960);
-    let idx = 0;
-
-    audioProcessor.onaudioprocess = e => {
-        const input = e.inputBuffer.getChannelData(0);
-        for (let i=0;i<input.length;i++){
-            const s=Math.max(-1,Math.min(1,input[i]));
-            frame[idx++] = s<0 ? s*32768 : s*32767;
-
-            if (idx===frame.length){
-                if (ws?.readyState===1) ws.send(frame.buffer);
-
-                if (monitorEnabled && monitorGain>0){
-                    const m=new Int16Array(frame.length);
-                    for (let j=0;j<m.length;j++) m[j]=frame[j]*monitorGain;
-                    queueFrame(m.buffer);
+        
+        joinBtn.addEventListener('click', joinSession);
+        leaveBtn.addEventListener('click', leaveSession);
+        
+        async function joinSession() {
+            const roomName = document.getElementById('roomName').value.trim();
+            const username = document.getElementById('username').value.trim();
+            
+            if (!roomName || !username) {
+                alert('Please enter both room name and your name');
+                return;
+            }
+            
+            try {
+                statusText.textContent = 'Requesting microphone access...';
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 48000
+                    } 
+                });
+                
+                audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+                
+                // Audio level monitoring
+                const analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaStreamSource(localStream);
+                source.connect(analyser);
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                
+                function updateLevel() {
+                    analyser.getByteFrequencyData(dataArray);
+                    const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+                    levelBar.style.width = (average / 255 * 100) + '%';
+                    if (audioContext && audioContext.state === 'running') {
+                        requestAnimationFrame(updateLevel);
+                    }
                 }
-                idx=0;
+                updateLevel();
+                
+                // Start continuous playback
+                startContinuousPlayback();
+                
+                statusText.textContent = 'Connecting to server...';
+                ws = new WebSocket(`wss://jam2.swpage89.workers.dev/?room=${roomName}`);
+                
+                ws.onopen = () => {
+                    statusText.textContent = 'Connected! Joining room...';
+                    ws.send(JSON.stringify({
+                        type: 'join',
+                        username: username,
+                        public_ip: 'web-client',
+                        public_port: 0
+                    }));
+                    
+                    joinForm.style.display = 'none';
+                    status.classList.add('active');
+                    roomDisplay.textContent = roomName;
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    handleSignaling(data, username);
+                };
+                
+                ws.onerror = (err) => {
+                    console.error('WebSocket error:', err);
+                    statusText.textContent = 'Connection error!';
+                };
+                
+                ws.onclose = () => {
+                    statusText.textContent = 'Disconnected';
+                };
+                
+            } catch (err) {
+                console.error('Error:', err);
+                alert('Could not access microphone. Please check permissions.');
+                statusText.textContent = 'Error';
             }
         }
-    };
+        
+        async function handleSignaling(data, username) {
+            switch(data.type) {
+                case 'joined':
+                    myPeerId = data.peerId;
+                    statusText.textContent = `Connected as ${username}`;
+                    await setupAudioProcessing();
+                    break;
+                    
+                case 'user-joined':
+                    addPeer(data.peerId, data.username);
+                    statusText.textContent = `${data.username} joined!`;
+                    break;
+                    
+                case 'existing-users':
+                    data.users.forEach(user => {
+                        addPeer(user.peerId, user.username);
+                    });
+                    if (data.users.length > 0) {
+                        statusText.textContent = `Playing with ${data.users.length} other${data.users.length > 1 ? 's' : ''}`;
+                    }
+                    break;
+                    
+                case 'user-left':
+                    removePeer(data.peerId);
+                    statusText.textContent = `${data.username} left`;
+                    break;
 
-    source.connect(audioProcessor);
-    audioProcessor.connect(audioContext.destination);
-}
+                case 'desktop-audio':
+                    if (data.audio && Array.isArray(data.audio)) {
+                        queueAudioFrame(new Uint8Array(data.audio));
+                        calculateLatency(data.timestamp);
+                    }
+                    break;
 
-/* ================= PLAYBACK ================= */
-function queueFrame(buf){
-    playbackBuffer.push(buf);
-    while(playbackBuffer.length>maxBufferFrames) playbackBuffer.shift();
-    bufferStats.textContent = (playbackBuffer.length*20)+'ms';
-}
+                case 'webrtc-audio':
+                    if (data.peerId !== myPeerId && data.audio && Array.isArray(data.audio)) {
+                        queueAudioFrame(new Uint8Array(data.audio));
+                    }
+                    break;
 
-function startPlayback(){
-    let t = audioContext.currentTime;
-    setInterval(()=>{
-        if (!playbackBuffer.length) return;
-        const pcm=new Int16Array(playbackBuffer.shift());
-        const f32=new Float32Array(pcm.length);
-        for(let i=0;i<pcm.length;i++) f32[i]=pcm[i]/32768;
-
-        const b=audioContext.createBuffer(1,f32.length,48000);
-        b.getChannelData(0).set(f32);
-
-        const s=audioContext.createBufferSource();
-        s.buffer=b;
-        s.connect(audioContext.destination);
-
-        if (t<audioContext.currentTime) t=audioContext.currentTime;
-        s.start(t); t+=0.02;
-    },10);
-}
-
-/* ================= LEVEL METER ================= */
-function startMeter(){
-    const analyser=audioContext.createAnalyser();
-    audioContext.createMediaStreamSource(localStream).connect(analyser);
-    const data=new Uint8Array(analyser.frequencyBinCount);
-    (function loop(){
-        analyser.getByteFrequencyData(data);
-        levelBar.style.width=(data.reduce((a,b)=>a+b)/data.length/255*100)+'%';
-        requestAnimationFrame(loop);
-    })();
-}
-
-/* ================= PEERS ================= */
-function addPeer(id,name){
-    const d=document.createElement('div');
-    d.id='peer-'+id;
-    d.className='peer';
-    d.innerHTML=`<div class="peer-indicator"></div>${name}`;
-    peerList.appendChild(d);
-}
-function removePeer(id){
-    document.getElementById('peer-'+id)?.remove();
-}
-
-/* ================= LEAVE ================= */
-leaveBtn.onclick = ()=>{
-    ws?.close();
-    audioProcessor?.disconnect();
-    audioContext?.close();
-    localStream?.getTracks().forEach(t=>t.stop());
-    location.reload();
-};
-</script>
+                case 'ping':
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'pong' }));
+                    }
+                    break;
+            }
+        }
+        
+        function calculateLatency(timestamp) {
+            if (timestamp) {
+                const now = Date.now() * 1000;
+                const latency = ((now - timestamp) / 1000).toFixed(1);
+                latencyStats.textContent = latency + 'ms';
+            }
+        }
+        
+        async function setupAudioProcessing() {
+            try {
+                const source = audioContext.createMediaStreamSource(localStream);
+                const bufferSize = 4096;
+                audioProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+                
+                let frameBuffer = [];
+                const FRAME_SIZE = 960; // 20ms at 48kHz
+                
+                audioProcessor.onaudioprocess = (e) => {
+                    const inputData = e.inputBuffer.getChannelData(0);
+                    
+                    // Convert to int16 and collect frames
+                    for (let i = 0; i < inputData.length; i++) {
+                        const s = Math.max(-1, Math.min(1, inputData[i]));
+                        const sample = s < 0 ? s * 32768 : s * 32767;
+                        frameBuffer.push(Math.round(sample));
+                        
+                        if (frameBuffer.length >= FRAME_SIZE) {
+                            const frame = frameBuffer.slice(0, FRAME_SIZE);
+                            frameBuffer = frameBuffer.slice(FRAME_SIZE);
+                            
+                            // Self-monitor if enabled
+                            if (monitorEnabled && monitorGain > 0) {
+                                // Convert frame to properly formatted array
+                                const monitorData = new Uint8Array(frame.length * 2);
+                                for (let j = 0; j < frame.length; j++) {
+                                    const sample = Math.round(frame[j] * monitorGain);
+                                    const clamped = Math.max(-32768, Math.min(32767, sample));
+                                    monitorData[j * 2] = clamped & 0xFF;
+                                    monitorData[j * 2 + 1] = (clamped >> 8) & 0xFF;
+                                }
+                                queueAudioFrame(monitorData);
+                            }
+                            
+                            // Send to network - convert to byte array for JSON
+                            const audioBytes = new Array(frame.length * 2);
+                            for (let j = 0; j < frame.length; j++) {
+                                const sample = frame[j];
+                                audioBytes[j * 2] = sample & 0xFF;
+                                audioBytes[j * 2 + 1] = (sample >> 8) & 0xFF;
+                            }
+                            
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify({
+                                    type: 'webrtc-audio',
+                                    audio: audioBytes,
+                                    timestamp: Date.now() * 1000
+                                }));
+                            }
+                        }
+                    }
+                };
+                
+                source.connect(audioProcessor);
+                audioProcessor.connect(audioContext.destination);
+                
+            } catch (err) {
+                console.error('Audio processing error:', err);
+                statusText.textContent = 'Error setting up audio';
+            }
+        }
+        
+        function queueAudioFrame(byteArray) {
+            playbackBuffer.push(byteArray);
+            
+            // Limit buffer size
+            if (maxBufferFrames > 0) {
+                while (playbackBuffer.length > maxBufferFrames) {
+                    playbackBuffer.shift();
+                }
+            }
+            
+            updateBufferStats();
+        }
+        
+        function startContinuousPlayback() {
+            const INTERVAL_MS = 20;
+            
+            setInterval(() => {
+                if (playbackBuffer.length === 0) return;
+                
+                const frame = playbackBuffer.shift();
+                updateBufferStats();
+                
+                try {
+                    // Convert byte array to int16 samples
+                    const int16Array = new Int16Array(frame.length / 2);
+                    for (let i = 0; i < int16Array.length; i++) {
+                        const byte1 = frame[i * 2];
+                        const byte2 = frame[i * 2 + 1];
+                        int16Array[i] = (byte2 << 8) | byte1;
+                    }
+                    
+                    // Convert int16 to float32
+                    const float32 = new Float32Array(int16Array.length);
+                    for (let i = 0; i < int16Array.length; i++) {
+                        float32[i] = int16Array[i] / (int16Array[i] < 0 ? 32768 : 32767);
+                    }
+                    
+                    const audioBuffer = audioContext.createBuffer(1, float32.length, audioContext.sampleRate);
+                    audioBuffer.getChannelData(0).set(float32);
+                    
+                    const bufferSource = audioContext.createBufferSource();
+                    bufferSource.buffer = audioBuffer;
+                    bufferSource.connect(audioContext.destination);
+                    bufferSource.start();
+                    
+                } catch (err) {
+                    console.error('Playback error:', err);
+                }
+            }, INTERVAL_MS);
+        }
+        
+        function addPeer(peerId, username) {
+            if (peerId === myPeerId) return;
+            
+            const existingPeer = document.getElementById('peer-' + peerId);
+            if (existingPeer) return;
+            
+            const peerDiv = document.createElement('div');
+            peerDiv.className = 'peer';
+            peerDiv.id = 'peer-' + peerId;
+            peerDiv.innerHTML = `
+                <div class="peer-indicator"></div>
+                <span>${username}</span>
+            `;
+            peerList.appendChild(peerDiv);
+        }
+        
+        function removePeer(peerId) {
+            const peerDiv = document.getElementById('peer-' + peerId);
+            if (peerDiv) peerDiv.remove();
+        }
+        
+        function leaveSession() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            if (audioProcessor) {
+                audioProcessor.disconnect();
+                audioProcessor = null;
+            }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+            
+            playbackBuffer = [];
+            joinForm.style.display = 'block';
+            status.classList.remove('active');
+            peerList.innerHTML = '';
+            myPeerId = null;
+        }
+    </script>
 </body>
 </html>
