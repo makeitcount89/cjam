@@ -454,9 +454,17 @@
                 };
                 
                 ws.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    handleSignaling(data, username);
-                };
+    // 🔊 AUDIO PATH (binary)
+    if (event.data instanceof ArrayBuffer) {
+        queueAudioFrame(event.data);
+        return;
+    }
+
+    // 📡 SIGNALING PATH (JSON)
+    const data = JSON.parse(event.data);
+    handleSignaling(data, username);
+};
+
                 
                 ws.onerror = (err) => {
                     console.error('WebSocket error:', err);
