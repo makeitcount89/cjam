@@ -594,42 +594,40 @@ async function setupAudioProcessing() {
         }
         
         function startContinuousPlayback() {
-            const INTERVAL_MS = 20;
-            
-            setInterval(() => {
-                if (playbackBuffer.length === 0) return;
-                
-                const frame = playbackBuffer.shift();
-                updateBufferStats();
-                
-                try {
-                    // Convert byte array to int16 samples
-                    const int16Array = new Int16Array(frame.length / 2);
-                    for (let i = 0; i < int16Array.length; i++) {
-                        const byte1 = frame[i * 2];
-                        const byte2 = frame[i * 2 + 1];
-                        int16Array[i] = (byte2 << 8) | byte1;
-                    }
-                    
-                    // Convert int16 to float32
-                    const float32 = new Float32Array(int16Array.length);
-                    for (let i = 0; i < int16Array.length; i++) {
-                        float32[i] = int16Array[i] / (int16Array[i] < 0 ? 32768 : 32767);
-                    }
-                    
-                    const audioBuffer = audioContext.createBuffer(1, float32.length, audioContext.sampleRate);
-                    audioBuffer.getChannelData(0).set(float32);
-                    
-                    const bufferSource = audioContext.createBufferSource();
-                    bufferSource.buffer = audioBuffer;
-                    bufferSource.connect(audioContext.destination);
-                    bufferSource.start();
-                    
-                } catch (err) {
-                    console.error('Playback error:', err);
-                }
-            }, INTERVAL_MS);
+    let playTime = audioContext.currentTime;
+
+    const FRAME_DURATION = 960 / 48000; // 20ms
+
+    setInterval(() => {
+        if (playbackBuffer.length === 0) return;
+
+        const frame = playbackBuffer.shift();
+
+        const pcm = new Int16Array(frame);
+        const float32 = new Float32Array(pcm.length);
+
+        for (let i = 0; i < pcm.length; i++) {
+            float32[i] = pcm[i] / (pcm[i] < 0 ? 32768 : 32767);
         }
+
+        const buffer = audioContext.createBuffer(1, float32.length, 48000);
+        buffer.getChannelData(0).set(float32);
+
+        const src = audioContext.createBufferSource();
+        src.buffer = buffer;
+        src.connect(audioContext.destination);
+
+        if (playTime < audioContext.currentTime) {
+            playTime = audioContext.currentTime;
+        }
+
+        src.start(playTime);
+        playTime += FRAME_DURATION;
+
+        updateBufferStats();
+    }, 10);
+}
+
         
         function addPeer(peerId, username) {
             if (peerId === myPeerId) return;
