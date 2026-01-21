@@ -530,69 +530,48 @@
             }
         }
         
-        async function setupAudioProcessing() {
-            try {
-                const source = audioContext.createMediaStreamSource(localStream);
-                const bufferSize = 4096;
-                audioProcessor = audioContext.createScriptProcessor(bufferSize, 1, 1);
-                
-                let frameBuffer = [];
-                const FRAME_SIZE = 960; // 20ms at 48kHz
-                
-                audioProcessor.onaudioprocess = (e) => {
-                    const inputData = e.inputBuffer.getChannelData(0);
-                    
-                    // Convert to int16 and collect frames
-                    for (let i = 0; i < inputData.length; i++) {
-                        const s = Math.max(-1, Math.min(1, inputData[i]));
-                        const sample = s < 0 ? s * 32768 : s * 32767;
-                        frameBuffer.push(Math.round(sample));
-                        
-                        if (frameBuffer.length >= FRAME_SIZE) {
-                            const frame = frameBuffer.slice(0, FRAME_SIZE);
-                            frameBuffer = frameBuffer.slice(FRAME_SIZE);
-                            
-                            // Self-monitor if enabled
-                            if (monitorEnabled && monitorGain > 0) {
-                                // Convert frame to properly formatted array
-                                const monitorData = new Uint8Array(frame.length * 2);
-                                for (let j = 0; j < frame.length; j++) {
-                                    const sample = Math.round(frame[j] * monitorGain);
-                                    const clamped = Math.max(-32768, Math.min(32767, sample));
-                                    monitorData[j * 2] = clamped & 0xFF;
-                                    monitorData[j * 2 + 1] = (clamped >> 8) & 0xFF;
-                                }
-                                queueAudioFrame(monitorData);
-                            }
-                            
-                            // Send to network - convert to byte array for JSON
-                            const audioBytes = new Array(frame.length * 2);
-                            for (let j = 0; j < frame.length; j++) {
-                                const sample = frame[j];
-                                audioBytes[j * 2] = sample & 0xFF;
-                                audioBytes[j * 2 + 1] = (sample >> 8) & 0xFF;
-                            }
-                            
-                            if (ws && ws.readyState === WebSocket.OPEN) {
-                                ws.send(JSON.stringify({
-                                    type: 'webrtc-audio',
-                                    audio: audioBytes,
-                                    timestamp: Date.now() * 1000
-                                }));
-                            }
-                        }
+        <script>
+async function setupAudioProcessing() {
+    const source = audioContext.createMediaStreamSource(localStream);
+
+    const bufferSize = 1024; // ≈21ms @ 48kHz
+    const processor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+    let frame = new Int16Array(960); // 20ms
+    let frameIndex = 0;
+
+    processor.onaudioprocess = (e) => {
+        const input = e.inputBuffer.getChannelData(0);
+
+        for (let i = 0; i < input.length; i++) {
+            const s = Math.max(-1, Math.min(1, input[i]));
+            frame[frameIndex++] = s < 0 ? s * 32768 : s * 32767;
+
+            if (frameIndex === frame.length) {
+                // 🔥 SEND RAW PCM AS BINARY
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(frame.buffer);
+                }
+
+                // Self-monitor
+                if (monitorEnabled && monitorGain > 0) {
+                    const monitor = new Int16Array(frame.length);
+                    for (let j = 0; j < frame.length; j++) {
+                        monitor[j] = frame[j] * monitorGain;
                     }
-                };
-                
-                source.connect(audioProcessor);
-                audioProcessor.connect(audioContext.destination);
-                
-            } catch (err) {
-                console.error('Audio processing error:', err);
-                statusText.textContent = 'Error setting up audio';
+                    queueAudioFrame(monitor.buffer);
+                }
+
+                frameIndex = 0;
             }
         }
-        
+    };
+
+    source.connect(processor);
+    processor.connect(audioContext.destination);
+}
+</script>
+
         function queueAudioFrame(byteArray) {
             playbackBuffer.push(byteArray);
             
